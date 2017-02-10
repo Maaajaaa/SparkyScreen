@@ -45,34 +45,34 @@ module mainPcb(holes = "in"){
   color("DarkSlateGrey")translate([64,21,3.3])cube([43,56,4.2]);
 }
 
-module pcbMount(mode = "side")
-{}
-
 wallThickness = 2;
+screenFrontMountDepth = 1.5;
+;
 //[top,bottom,left,right]
 overlap = [1.5,8,2,3.5];
-module base(){
+module frontBezel(){
   difference(){
-    translate([-wallThickness,-wallThickness,-wallThickness])
+    translate([-overlap[3]-wallThickness,-overlap[0]-wallThickness,-screenFrontMountDepth])
       minkowski(){
-        cube([screenCube[0]+2*wallThickness,screenCube[1]+2*wallThickness,screenCube[2]+wallThickness-0.001]);
+        cube([screenCube[0]+2*wallThickness,screenCube[1]+2*wallThickness,screenCube[2]+screenFrontMountDepth-0.001]);
         //cylinder(r=3, 0.001,$fn=6);
       }
-    translate([overlap[3],overlap[0],-wallThickness-1])cube([screenCube[0]-overlap[2]-overlap[3],screenCube[1]-overlap[0]-overlap[1],screenCube[2]+1]);
-    #screen();
+    translate([0,0,-wallThickness-1])cube([screenCube[0]-overlap[2]-overlap[3],screenCube[1]-overlap[0]-overlap[1],screenCube[2]+1]);
+    #translate([-overlap[3],-overlap[0],0])screen();
   }
 }
-color("Green")base();
-screen(extentionsOnly=true,nutHeight=nutHeight);
+
+color("Green")frontBezel();
+*screen(extentionsOnly=true,nutHeight=nutHeight);
 mainPcbPos = [screenCube[0]-mainPcbSize[0]-15,6,screenCube[2]+1.9];
-translate(mainPcbPos){
+*translate(mainPcbPos){
   mainPcb();
   stainless(no="1.4301")for(x = [0,1], y = [0,1]){
     translate([4.6+x*(mainPcbSize[0]-9.2), 5.3+y*(mainPcbSize[1]-10), 3.5+4])nut("M3");
     translate([4.6+x*(mainPcbSize[0]-9.2), 5.3+y*(mainPcbSize[1]-10), 0.1])rotate([0,180,0])screw("M3x8");
   }
 }
-top();
+*top();
 module top(screwSecuringDiameter=16){
   for(x = [-1,1], y = [-1,1]){
     translate([screenCube[0]/2+x*patternX/2,screenCube[1]/2+y*patternY/2, screenCube[2]+nutHeight-clearanceDepth]){
