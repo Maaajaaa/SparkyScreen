@@ -9,7 +9,6 @@ patternX=50;
 patternY=20;
 clearanceDepth=6;
 nutHeight=16;
-nutThickness=0;
 //defintions (should stay as they are)
 thread="M4";
 nutThickness = _get_fam(thread)[_NB_F_NUT_HEIGHT];
