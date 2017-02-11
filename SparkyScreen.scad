@@ -103,18 +103,18 @@ module frontBezel(){
   preFinalSize = basicBezelSize+overlapBezelSizeCorrection+wallSize;
   currentBezelWidth = (preFinalSize-[screenCube[0],screenCube[1],preFinalSize[2]]);
   bezelCorrection = ([bezelWidth*2,bezelWidth*2,0])-currentBezelWidth;
-  finalSize = preFinalSize + bezelCorrection;
+  cornerCorrection = -[cornerRadius*2+cornerSmoothingRadius*2,cornerRadius*2+cornerSmoothingRadius*2,0];
+  finalSize = preFinalSize + bezelCorrection + cornerCorrection;
   echo([bezelWidth*2,bezelWidth*2,0]-currentBezelWidth);
   if(bezelCorrection[0] < 0 || bezelCorrection[1] < 0)
     echo("<b>ERROR: your choosen bevelSize is too small for the display offset and wall thickness</b>", "minimum is:", max(overlap)+wallThickness);
-  finalTranslation = basicBezelTranslation+overlapBezelTranslationCorrection+wallTranslation-([bezelWidth*2,bezelWidth*2,0]-currentBezelWidth)/2;
+  finalTranslation = basicBezelTranslation+overlapBezelTranslationCorrection+wallTranslation-bezelCorrection/2-cornerCorrection/2;
   echo(currentBezelWidth);
   translate([overlap[3],overlap[0],0])difference()
   {
     translate(finalTranslation)
       minkowski(){
-        translate([cornerRadius+cornerSmoothingRadius,cornerRadius+cornerSmoothingRadius,0])
-          cube(finalSize-[cornerRadius*2+cornerSmoothingRadius*2,cornerRadius*2+cornerSmoothingRadius*2,0]);
+        cube(finalSize);
         cylinder(r=cornerRadius, 0.00001,$fn=4);
         cylinder(r=cornerSmoothingRadius,0.00001,$fn=30);
       }
@@ -124,7 +124,7 @@ module frontBezel(){
   }
 }
 
-*rotate([0,45,-$t*360])  //for animation
+//rotate([0,45,-$t*360])  //for animation
   translate([-screenCube[0]/2,-screenCube[1]/2,0])  {
       frontBezel();
       #lcd();
@@ -133,7 +133,7 @@ module frontBezel(){
       mainPcbPos = [lcdCube[0]-mainPcbSize[0]-15,6,lcdCube[2]+1.9];
       #lcd(extentionsOnly=true,nutHeight=nutHeight);
       #translate(mainPcbPos){
-        translate([-18-bezelWidth+overlap[3],0,-1.9])buttonPcb();
+        translate([-18-bezelWidth+overlap[3],83,3.2])rotate([180,0,0])buttonPcb();
         mainPcb();
         stainless(no="1.4301")for(x = [0,1], y = [0,1]){
           translate([4.6+x*(mainPcbSize[0]-9.2), 5.3+y*(mainPcbSize[1]-10), 3.5+4])nut("M3");
