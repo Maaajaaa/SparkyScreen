@@ -15,6 +15,8 @@ cornerRadius = 5; // [0:0.1:30]
 //radius for smoothing the outer corners
 cornerSmoothingRadius = 2; // [0:0.05:5]
 
+pcbColor=[0.11,0.36,0.89];
+
 /* [General Options] */
 lcdCube = [165,105,4.5];
 patternX=50;
@@ -25,7 +27,8 @@ nutMountDepth = 1.5;
 //defintions (should stay as they are)
 thread="M4";
 nutThickness = _get_fam(thread)[_NB_F_NUT_HEIGHT];
-//MAIN CHIP NEEDS AIRFLOW FOR COOLING
+echo("<b>MAIN CHIP NEEDS AIRFLOW FOR COOLING</b>");
+
 module lcd(patternX=50, patternY=20, thread = "M4", nutHeight=16, clearanceDepth=6, extentionsOnly=false){
   if(!extentionsOnly)color("SlateGrey")cube(lcdCube);
   if(extentionsOnly)stainless(no="1.4301")for(x = [-1,1], y = [-1,1]){
@@ -35,14 +38,13 @@ module lcd(patternX=50, patternY=20, thread = "M4", nutHeight=16, clearanceDepth
     }
   }
 }
-function x(x) = x;
-//translate([0,0,-lcdCube[2]])lcd();
-//pcb
+
 mainPcbSize=[128.7,85.4,3.5];
+
 module mainPcb(holes = "in"){
   //board and MAIN components (reference: winborad IC (U300))
   difference(){
-    color("Blue")cube(mainPcbSize);
+    color(pcbColor)cube(mainPcbSize);
     if(holes == "in")for(x = [0,1], y = [0,1])
         translate([4.6+x*(mainPcbSize[0]-9.2), 5.3+y*(mainPcbSize[1]-10),-1])cylinder(5,d=3.2,$fn=20);
   }
@@ -57,15 +59,32 @@ module mainPcb(holes = "in"){
   color("DarkSlateGrey")translate([64,21,3.3])cube([43,56,4.2]);
 }
 
-//[left-right,top-bottom]
+module buttonPcb(holes="in"){
+  difference() {
+    //bare pcb with resistors
+    color(pcbColor)cube([15,83,1.7]);
+    //holes
+    for(y=[17,47.9,79.8]){
+      translate([7.5,y,-1])cylinder(d=2.3,4);
+    }
+  }
+  //connector
+  color("LightGrey")translate([1.5,-0.5,1.7])cube([12,8.1,3.2]);
+  //buttons
+  for(y=[19,28.4,48.5,58.5,68.5]){
+    color("Black")translate([5.6-9,y,-0.001]){
+      cube([9,8.3,3.7]);
+      translate([-2,2.4,1.15])cube([2,3.5,1.5]);
+    }
+  }
+}
+
 wallThickness = 2;
 lcdFrontMountDepth = 1.5;
 //[top,bottom,right,left]
-//correct
 overlap = [1.5,8,3.5,2];
 screenCube = [lcdCube[0]-overlap[2]-overlap[3],lcdCube[1]-overlap[0]-overlap[1],lcdCube[2]+1];
-//swapped
-//overlap = [1.5,8,2,3.5];
+
 module frontBezel(){
   //overlap difference of left and right
   overlapCorrectionX = overlap[3]-overlap[2];
@@ -105,15 +124,16 @@ module frontBezel(){
   }
 }
 
-rotate([0,45,-$t*360])
+*rotate([0,45,-$t*360])  //for animation
   translate([-screenCube[0]/2,-screenCube[1]/2,0])  {
       frontBezel();
-      /*color([0,0,0,0.5])*/#lcd();
+      #lcd();
       top();
 
       mainPcbPos = [lcdCube[0]-mainPcbSize[0]-15,6,lcdCube[2]+1.9];
       #lcd(extentionsOnly=true,nutHeight=nutHeight);
       #translate(mainPcbPos){
+        translate([-18-bezelWidth+overlap[3],0,-1.9])buttonPcb();
         mainPcb();
         stainless(no="1.4301")for(x = [0,1], y = [0,1]){
           translate([4.6+x*(mainPcbSize[0]-9.2), 5.3+y*(mainPcbSize[1]-10), 3.5+4])nut("M3");
