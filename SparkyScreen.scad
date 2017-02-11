@@ -4,7 +4,19 @@ include<nutsnbolts/data-access.scad> // database lookup functions
 include<nutsnbolts/data-metric_cyl_head_bolts.scad>
 
 $fn = 40;
-screenCube = [165,105,4.5];
+
+/* [Optical Enhancements] */
+//Final width of the bezel
+bezelWidth = 12;  // [5:0.1:30]
+
+//cornerRadius of the frontBezel
+cornerRadius = 5; // [0:0.1:30]
+
+//radius for smoothing the outer corners
+cornerSmoothingRadius = 2; // [0:0.05:5]
+
+/* [General Options] */
+lcdCube = [165,105,4.5];
 patternX=50;
 patternY=20;
 clearanceDepth=6;
@@ -12,19 +24,18 @@ nutHeight=16;
 //defintions (should stay as they are)
 thread="M4";
 nutThickness = _get_fam(thread)[_NB_F_NUT_HEIGHT];
-echo("nutThickness is (from nutThickness variable):",nutThickness, "however it should be", _get_fam(thread)[_NB_F_NUT_HEIGHT]);
 //MAIN CHIP NEEDS AIRFLOW FOR COOLING
-module screen(patternX=50, patternY=20, thread = "M4", nutHeight=16, clearanceDepth=6, extentionsOnly=false){
-  if(!extentionsOnly)color("SlateGrey")cube(screenCube);
+module lcd(patternX=50, patternY=20, thread = "M4", nutHeight=16, clearanceDepth=6, extentionsOnly=false){
+  if(!extentionsOnly)color("SlateGrey")cube(lcdCube);
   if(extentionsOnly)stainless(no="1.4301")for(x = [-1,1], y = [-1,1]){
-    translate([screenCube[0]/2+x*patternX/2,screenCube[1]/2+y*patternY/2, screenCube[2]+nutHeight]){
+    translate([lcdCube[0]/2+x*patternX/2,lcdCube[1]/2+y*patternY/2, lcdCube[2]+nutHeight]){
       translate([0,0,3.2])nut(thread);
       translate([0,0,-clearanceDepth])cylinder(d=4.3,clearanceDepth);
     }
   }
 }
 function x(x) = x;
-//translate([0,0,-screenCube[2]])screen();
+//translate([0,0,-lcdCube[2]])lcd();
 //pcb
 mainPcbSize=[128.7,85.4,3.5];
 module mainPcb(holes = "in"){
@@ -45,26 +56,59 @@ module mainPcb(holes = "in"){
   color("DarkSlateGrey")translate([64,21,3.3])cube([43,56,4.2]);
 }
 
+//[left-right,top-bottom]
 wallThickness = 2;
-screenFrontMountDepth = 1.5;
-;
-//[top,bottom,left,right]
-overlap = [1.5,8,2,3.5];
+lcdFrontMountDepth = 1.5;
+//[top,bottom,right,left]
+//correct
+overlap = [1.5,8,3.5,2];
+screenCube = [lcdCube[0]-overlap[2]-overlap[3],lcdCube[1]-overlap[0]-overlap[1],lcdCube[2]+1];
+//swapped
+//overlap = [1.5,8,2,3.5];
 module frontBezel(){
-  difference(){
-    translate([-overlap[3]-wallThickness,-overlap[0]-wallThickness,-screenFrontMountDepth])
+  //overlap difference of left and right
+  overlapCorrectionX = overlap[3]-overlap[2];
+  overlapCorrectionY = overlap[0]-overlap[1];
+  *echo("overlap(X,Y): ", overlapCorrectionX, overlapCorrectionY);
+  //minimum size (only final size when wallThickness=0 and symmetric overlaps)
+  basicBezelSize = [lcdCube[0],lcdCube[1],lcdCube[2]+lcdFrontMountDepth-0.001];
+  basicBezelTranslation = [-overlap[3], -overlap[0], -lcdFrontMountDepth];
+  //correct assymetric top-bottom and left-right realtion
+  overlapBezelSizeCorrection = [abs(overlapCorrectionX),abs(overlapCorrectionY),0];
+  overlapBezelTranslationCorrection = [overlapCorrectionX,overlapCorrectionY,0];
+  //add at the minimalRequiredWalls to all sides
+  wallSize = [wallThickness*2,wallThickness*2,0];
+  wallTranslation = [-wallThickness,-wallThickness,0];
+  //finally add up all correction and make bezels equal
+  preFinalSize = basicBezelSize+overlapBezelSizeCorrection+wallSize;
+  currentBezelWidth = (preFinalSize-[screenCube[0],screenCube[1],preFinalSize[2]]);
+  bezelCorrection = ([bezelWidth*2,bezelWidth*2,0])-currentBezelWidth;
+  finalSize = preFinalSize + bezelCorrection;
+  echo([bezelWidth*2,bezelWidth*2,0]-currentBezelWidth);
+  if(bezelCorrection[0] < 0 || bezelCorrection[1] < 0)
+    echo("<b>ERROR: your choosen bevelSize is too small for the display offset and wall thickness</b>", "minimum is:", max(overlap)+wallThickness);
+  finalTranslation = basicBezelTranslation+overlapBezelTranslationCorrection+wallTranslation-([bezelWidth*2,bezelWidth*2,0]-currentBezelWidth)/2;
+  echo(currentBezelWidth);
+  difference()
+  {
+    translate(finalTranslation)
       minkowski(){
-        cube([screenCube[0]+2*wallThickness,screenCube[1]+2*wallThickness,screenCube[2]+screenFrontMountDepth-0.001]);
-        //cylinder(r=3, 0.001,$fn=6);
+        translate([cornerRadius+cornerSmoothingRadius,cornerRadius+cornerSmoothingRadius,0])
+          cube(finalSize-[cornerRadius*2+cornerSmoothingRadius*2,cornerRadius*2+cornerSmoothingRadius*2,0]);
+        cylinder(r=cornerRadius, 0.00001,$fn=4);
+        cylinder(r=cornerSmoothingRadius,0.00001,$fn=30);
       }
-    translate([0,0,-wallThickness-1])cube([screenCube[0]-overlap[2]-overlap[3],screenCube[1]-overlap[0]-overlap[1],screenCube[2]+1]);
-    #translate([-overlap[3],-overlap[0],0])screen();
+
+    color("DarkSlateGrey")translate([0,0,-lcdFrontMountDepth-1])cube(screenCube);
+    color("Gray")translate([-overlap[3],-overlap[0],0])scale([1, 1, 1.1])lcd();
   }
 }
 
-color("Green")frontBezel();
-*screen(extentionsOnly=true,nutHeight=nutHeight);
-mainPcbPos = [screenCube[0]-mainPcbSize[0]-15,6,screenCube[2]+1.9];
+rotate([0,45,-$t*360])
+  translate([-screenCube[0]/2,-screenCube[1]/2,0])
+    frontBezel();
+*lcd(extentionsOnly=true,nutHeight=nutHeight);
+mainPcbPos = [lcdCube[0]-mainPcbSize[0]-15,6,lcdCube[2]+1.9];
 *translate(mainPcbPos){
   mainPcb();
   stainless(no="1.4301")for(x = [0,1], y = [0,1]){
@@ -75,12 +119,14 @@ mainPcbPos = [screenCube[0]-mainPcbSize[0]-15,6,screenCube[2]+1.9];
 *top();
 module top(screwSecuringDiameter=16){
   for(x = [-1,1], y = [-1,1]){
-    translate([screenCube[0]/2+x*patternX/2,screenCube[1]/2+y*patternY/2, screenCube[2]+nutHeight-clearanceDepth]){
+    translate([lcdCube[0]/2+x*patternX/2,lcdCube[1]/2+y*patternY/2, lcdCube[2]+nutHeight-clearanceDepth]){
       cylinder(d=screwSecuringDiameter,clearanceDepth,$fn=6);
     }
   }
-  /*translate([screenCube[0]/2-patternX/2,screenCube[1]/2-patternY/2,screenCube[2]+nutHeight-clearanceDepth])minkowski(){
+  /*translate([lcdCube[0]/2-patternX/2,lcdCube[1]/2-patternY/2,lcdCube[2]+nutHeight-clearanceDepth])minkowski(){
     cube([patternX,patternY,5]);
     cylinder(d=screwSecuringDiameter,0.001,$fn=6);
   }*/
 }
+
+function offset(x,y) = max(x,y)-min(x,y);
