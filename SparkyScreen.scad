@@ -5,7 +5,7 @@ include<nutsnbolts/data-metric_cyl_head_bolts.scad>
 
 $fn = 40;
 
-/* [Optical Enhancements] */
+/* [frontBezel] */
 //Final width of the bezel
 bezelWidth = 12;  // [5:0.1:30]
 
@@ -15,7 +15,12 @@ cornerRadius = 5; // [0:0.1:30]
 //radius for smoothing the outer corners
 cornerSmoothingRadius = 2; // [0:0.05:5]
 
-pcbColor=[0.11,0.36,0.89];
+/* [Backside] */
+//scale of the backplate
+scaleFactor = 0.9;// [0.1:0.01:1]
+
+//height of the backPlate
+backPlateHeihgt = 5;// [2:0.1:10]
 
 /* [General Options] */
 lcdCube = [165,105,4.5];
@@ -25,6 +30,7 @@ clearanceDepth=6;
 nutHeight=16;
 nutMountDepth = 1.5;
 //defintions (should stay as they are)
+pcbColor=[0.11,0.36,0.89];
 thread="M4";
 nutThickness = _get_fam(thread)[_NB_F_NUT_HEIGHT];
 echo("<b>MAIN CHIP NEEDS AIRFLOW FOR COOLING</b>");
@@ -124,11 +130,11 @@ module 3p5mmPcb(){
 
 wallThickness = 2;
 lcdFrontMountDepth = 1.5;
-//[top,bottom,right,left]
+//[back,bottom,right,left]
 overlap = [1.5,8,3.5,2];
 screenCube = [lcdCube[0]-overlap[2]-overlap[3],lcdCube[1]-overlap[0]-overlap[1],lcdCube[2]+1];
 
-module frontBezel(lcdFrontMountDepth=lcdFrontMountDepth,bezelWidth=bezelWidth,instance="notMain"){
+module frontBezel(lcdFrontMountDepth=lcdFrontMountDepth,bezelWidth=bezelWidth,instance="notMain",lcdCube=lcdCube,cornerRadius=cornerRadius){
   //overlap difference of left and right
   overlapCorrectionX = overlap[3]-overlap[2];
   overlapCorrectionY = overlap[0]-overlap[1];
@@ -136,7 +142,7 @@ module frontBezel(lcdFrontMountDepth=lcdFrontMountDepth,bezelWidth=bezelWidth,in
   //minimum size (only final size when wallThickness=0 and symmetric overlaps)
   basicBezelSize = [lcdCube[0],lcdCube[1],lcdCube[2]+lcdFrontMountDepth-0.001];
   basicBezelTranslation = [-overlap[3], -overlap[0], -lcdFrontMountDepth];
-  //correct assymetric top-bottom and left-right realtion
+  //correct assymetric back-bottom and left-right realtion
   overlapBezelSizeCorrection = [abs(overlapCorrectionX),abs(overlapCorrectionY),0];
   overlapBezelTranslationCorrection = [overlapCorrectionX,overlapCorrectionY,0];
   //add at the minimalRequiredWalls to all sides
@@ -170,7 +176,7 @@ module frontBezel(lcdFrontMountDepth=lcdFrontMountDepth,bezelWidth=bezelWidth,in
       hull(){
         bevelHeight = lcdFrontMountDepth;
         //originalHeight but smaller bezelWidth
-        translate([0,0,0])frontBezel(bezelWidth=bezelWidth-bevelHeight*2);
+        translate([0,0,0])frontBezel(bezelWidth=bezelWidth-bevelHeight*2,cornerRadius=cornerRadius*0.75);
         //lower with right bezel
         translate([0,0,0])frontBezel(lcdFrontMountDepth=0);
       }
@@ -182,29 +188,45 @@ module frontBezel(lcdFrontMountDepth=lcdFrontMountDepth,bezelWidth=bezelWidth,in
   }
 }
 
+buttonRotation = 0;
 //rotate([0,45,-$t*360])  //for animation
   translate([-screenCube[0]/2,-screenCube[1]/2,0])  {
-      frontBezel(instance="main")
-      #lcd();
-      top();
+      *frontBezel(instance="main");
+      back();
 
       mainPcbPos = [lcdCube[0]-mainPcbSize[0]-20,6,1.9];
       #lcd(extentionsOnly=true,nutHeight=nutHeight);
       #translate([0,0,lcdCube[2]]){
-        translate([-bezelWidth+overlap[3]+5.5,91,3.2])rotate([180,0,0])buttonPcb();
-        translate([mainPcbPos[0]+mainPcbSize[0]+2,3.5,2]){
-          microUsbPcb();
+        translate([-bezelWidth+overlap[3]+5.5,91,3.2])rotate([0,-buttonRotation,0])rotate([180,0,0])buttonPcb();
+        translate([mainPcbPos[0]+mainPcbSize[0]+0.5,3.5,2]){
+          translate([3,0,0])microUsbPcb();
           translate([0,18+10,-2])touchDriverPcb();
-          #translate([20.7,18+9.4,-2+7.9])rotate([0,180,90])3p5mmPcb();
+          translate([20.7,18+9.4,-2+7.9])rotate([0,180,90])3p5mmPcb();
         }
         translate(mainPcbPos)mainPcb(holes="screws");
       }
   }
 
-module top(screwSecuringDiameter=16){
+module back(screwSecuringDiameter=16){
   for(x = [-1,1], y = [-1,1]){
     translate([lcdCube[0]/2+x*patternX/2,lcdCube[1]/2+y*patternY/2, lcdCube[2]+nutHeight-clearanceDepth]){
       cylinder(d=screwSecuringDiameter,clearanceDepth+nutThickness+nutMountDepth,$fn=6);
+  }  }
+  translate([0,0,lcdCube[2]])
+  difference(){
+    hull(){
+      frontBezelbackShape();
+      translate([(screenCube[0]*(1-scaleFactor))/2,(screenCube[1]*(1-scaleFactor))/2,backPlateHeihgt])scale([scaleFactor,scaleFactor,1])frontBezelbackShape();
+    }
+    hull(){
+      translate([0,0,-0.001])cube(screenCube);
+      translate([(screenCube[0]*(1-scaleFactor))/2,(screenCube[1]*(1-scaleFactor))/2,backPlateHeihgt+2])cube(screenCube*scaleFactor);
     }
   }
+
+}
+//frontBezelbackShape();
+
+module frontBezelbackShape(){
+  frontBezel(lcdFrontMountDepth=0,lcdCube=[lcdCube[0],lcdCube[1],1]);
 }
