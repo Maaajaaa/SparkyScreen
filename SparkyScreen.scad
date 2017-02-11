@@ -21,6 +21,7 @@ patternX=50;
 patternY=20;
 clearanceDepth=6;
 nutHeight=16;
+nutMountDepth = 1.5;
 //defintions (should stay as they are)
 thread="M4";
 nutThickness = _get_fam(thread)[_NB_F_NUT_HEIGHT];
@@ -30,7 +31,7 @@ module lcd(patternX=50, patternY=20, thread = "M4", nutHeight=16, clearanceDepth
   if(extentionsOnly)stainless(no="1.4301")for(x = [-1,1], y = [-1,1]){
     translate([lcdCube[0]/2+x*patternX/2,lcdCube[1]/2+y*patternY/2, lcdCube[2]+nutHeight]){
       translate([0,0,3.2])nut(thread);
-      translate([0,0,-clearanceDepth])cylinder(d=4.3,clearanceDepth);
+      translate([0,0,-clearanceDepth])cylinder(d=4.3,clearanceDepth*3);
     }
   }
 }
@@ -89,7 +90,7 @@ module frontBezel(){
     echo("<b>ERROR: your choosen bevelSize is too small for the display offset and wall thickness</b>", "minimum is:", max(overlap)+wallThickness);
   finalTranslation = basicBezelTranslation+overlapBezelTranslationCorrection+wallTranslation-([bezelWidth*2,bezelWidth*2,0]-currentBezelWidth)/2;
   echo(currentBezelWidth);
-  difference()
+  translate([overlap[3],overlap[0],0])difference()
   {
     translate(finalTranslation)
       minkowski(){
@@ -105,28 +106,28 @@ module frontBezel(){
 }
 
 rotate([0,45,-$t*360])
-  translate([-screenCube[0]/2,-screenCube[1]/2,0])
-    frontBezel();
-*lcd(extentionsOnly=true,nutHeight=nutHeight);
-mainPcbPos = [lcdCube[0]-mainPcbSize[0]-15,6,lcdCube[2]+1.9];
-*translate(mainPcbPos){
-  mainPcb();
-  stainless(no="1.4301")for(x = [0,1], y = [0,1]){
-    translate([4.6+x*(mainPcbSize[0]-9.2), 5.3+y*(mainPcbSize[1]-10), 3.5+4])nut("M3");
-    translate([4.6+x*(mainPcbSize[0]-9.2), 5.3+y*(mainPcbSize[1]-10), 0.1])rotate([0,180,0])screw("M3x8");
+  translate([-screenCube[0]/2,-screenCube[1]/2,0])  {
+      frontBezel();
+      /*color([0,0,0,0.5])*/#lcd();
+      top();
+
+      mainPcbPos = [lcdCube[0]-mainPcbSize[0]-15,6,lcdCube[2]+1.9];
+      #lcd(extentionsOnly=true,nutHeight=nutHeight);
+      #translate(mainPcbPos){
+        mainPcb();
+        stainless(no="1.4301")for(x = [0,1], y = [0,1]){
+          translate([4.6+x*(mainPcbSize[0]-9.2), 5.3+y*(mainPcbSize[1]-10), 3.5+4])nut("M3");
+          translate([4.6+x*(mainPcbSize[0]-9.2), 5.3+y*(mainPcbSize[1]-10), 0.1])rotate([0,180,0])screw("M3x8");
+        }
+      }
   }
-}
-*top();
+
 module top(screwSecuringDiameter=16){
   for(x = [-1,1], y = [-1,1]){
     translate([lcdCube[0]/2+x*patternX/2,lcdCube[1]/2+y*patternY/2, lcdCube[2]+nutHeight-clearanceDepth]){
-      cylinder(d=screwSecuringDiameter,clearanceDepth,$fn=6);
+      cylinder(d=screwSecuringDiameter,clearanceDepth+nutThickness+nutMountDepth,$fn=6);
     }
   }
-  /*translate([lcdCube[0]/2-patternX/2,lcdCube[1]/2-patternY/2,lcdCube[2]+nutHeight-clearanceDepth])minkowski(){
-    cube([patternX,patternY,5]);
-    cylinder(d=screwSecuringDiameter,0.001,$fn=6);
-  }*/
 }
 
 function offset(x,y) = max(x,y)-min(x,y);
