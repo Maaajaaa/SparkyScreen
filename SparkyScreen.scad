@@ -1,11 +1,11 @@
 use<nutsnbolts/cyl_head_bolt.scad>
 use<nutsnbolts/materials.scad>
-include<nutsnbolts/data-access.scad> // database lookup functions
-include<nutsnbolts/data-metric_cyl_head_bolts.scad>
+use<nutsnbolts/data-access.scad> // database lookup functions
+use<nutsnbolts/data-metric_cyl_head_bolts.scad>
 
 $fn = 40;
 
-/* [frontBezel] */
+/* [Front Bezel] */
 //Final width of the bezel
 bezelWidth = 12;  // [5:0.1:30]
 
@@ -17,13 +17,13 @@ cornerSmoothingRadius = 2; // [0:0.05:5]
 
 /* [Backside] */
 //height of the first backPlate
-1stBackPlateHeight = 1;// [0.1:0.1:10]
+1stBackPlateHeight = 5.4;// [0.1:0.1:10]
 
 //scale of the backplate
-2ndBackPlateScale = 0.9;// [-5:0.01:1]
+2ndBackPlateScale = 0.2;// [-5:0.01:1]
 
 //height of the 2nd backPlate
-2ndBackPlateHeight = 5;// [2:0.1:15]
+2ndBackPlateHeight = 10;// [2:0.1:15]
 
 //show cable
 showCables = true;
@@ -35,6 +35,8 @@ patternY=20;
 clearanceDepth=6;
 nutHeight=16;
 nutMountDepth = 1.5;
+
+/* [Hidden] */
 //defintions (should stay as they are)
 pcbColor=[0.11,0.36,0.89];
 thread="M4";
@@ -208,10 +210,11 @@ buttonPcbTranslation = [4,0,2.7];
 //rotate([0,-45,-$t*360])  //only for animation
   translate([-screenCube[0]/2,-screenCube[1]/2,0])  {
       mainPcbPos = [lcdCube[0]-mainPcbSize[0]-20,-3,1.9];
-      difference(){
+      difference()
+      {
         union(){
-          back();
           frontBezel(instance="main");
+          back();
         }
         translate(mainPcbPos+[0,0,lcdCube[2]])mainPcb(holes="screws");
         lcd(extentionsOnly=true,nutHeight=nutHeight);
@@ -251,10 +254,11 @@ module back(screwSecuringDiameter=16,instance="notMain"){
         translate([0,0,0])rotate([0,20,180])hexoid(r=cutoutRadius,l=60,h=0.001);
         translate([0,0,2ndBackPlateHeight+0.1])rotate([0,20,180])hexoid(r=cutoutRadius*1.5,l=60*1.1,h=0.001);
       }
-      hull(){
+      /*hull(){
         translate([0,0,-0.001])cube(screenCube);
-        translate([(screenCube[0]*(1-2ndBackPlateScale))/2,(screenCube[1]*(1-2ndBackPlateScale))/2,2ndBackPlateHeight+3])cube(screenCube*2ndBackPlateScale);
-      }
+        #translate([0,0,2ndBackPlateHeight+3])
+          cube(screenCube-[2ndBackPlateScale*2,2ndBackPlateScale*2,0]);
+      }*/
     }
   }
 }
