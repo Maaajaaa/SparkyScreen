@@ -16,11 +16,17 @@ cornerRadius = 5; // [0:0.1:30]
 cornerSmoothingRadius = 2; // [0:0.05:5]
 
 /* [Backside] */
-//scale of the backplate
-scaleFactor = 0.9;// [0.1:0.01:1]
+//height of the first backPlate
+1stBackPlateHeight = 1;// [0.1:0.1:10]
 
-//height of the backPlate
-backPlateHeihgt = 5;// [2:0.1:10]
+//scale of the backplate
+2ndBackPlateScale = 0.9;// [-5:0.01:1]
+
+//height of the 2nd backPlate
+2ndBackPlateHeight = 5;// [2:0.1:15]
+
+//show cable
+showCables = true;
 
 /* [General Options] */
 lcdCube = [165,105,4.5];
@@ -44,8 +50,10 @@ module lcd(patternX=50, patternY=20, thread = "M4", nutHeight=16, clearanceDepth
     }
   }
 }
-
-mainPcbSize=[128.7,85.4,3.5];
+//withComponents on pcb
+//mainPcbSize=[128.7,85.4,3.5];
+//without them
+mainPcbSize=[128.7,85.4,1.4];
 
 module mainPcb(holes = "in"){
   //board and MAIN components (reference: winborad IC (U300))
@@ -57,15 +65,22 @@ module mainPcb(holes = "in"){
   //connectors
   color("LightGrey")translate([-0.001,12,0.001])cube([12.3,22,7]);
   color("LightGrey")translate([-0.001,39,0.001])cube([15,15,4.2]);
+  //HDMI port and cable
   color("Grey")translate([25.5,-3,-0.2])cube([16.4,12.6,7.6]);
+  if(showCables)color("Grey")translate([25.5-3.2,-43,-0.2-3.2])cube([22,40,14]);
+  //DVI port and cable
   color("LightGrey")translate([46.5,-6,-1.5])cube([38.4,17.5,12.4]);
+  if(showCables)color("LightGrey")translate([46.7,-46,-1.5-3.6/2])cube([38,40,16]);
+  //VGA port and cable
   color("LightBlue")translate([89,-6,-1.5])cube([32,15.5,15.5]);
+  if(showCables)color("LightBlue")translate([87.75,-46,-1.5])cube([34.5,40,15.5]);
+
   color("LightGrey")translate([35.6,74.5,mainPcbSize[2]])cube([27,11,0.8]);
   //big components like coils and caps
   color("DarkSlateGrey")translate([64,21,3.3])cube([43,56,4.2]);
   if(holes == "screws")stainless(no="1.4301")for(x = [0,1], y = [0,1]){
-    translate([4.6+x*(mainPcbSize[0]-9.2), 5.3+y*(mainPcbSize[1]-10), 3.5+4])nut("M3");
-    translate([4.6+x*(mainPcbSize[0]-9.2), 5.3+y*(mainPcbSize[1]-10), 0.1])rotate([0,180,0])screw("M3x8");
+    translate([4.6+x*(mainPcbSize[0]-9.2), 5.3+y*(mainPcbSize[1]-10), 1.4+4])nut("M3");
+    translate([4.6+x*(mainPcbSize[0]-9.2), 5.3+y*(mainPcbSize[1]-10), 0.1])rotate([0,180,0])screw("M3x6");
   }
 
 }
@@ -189,44 +204,62 @@ module frontBezel(lcdFrontMountDepth=lcdFrontMountDepth,bezelWidth=bezelWidth,in
 }
 
 buttonRotation = 0;
+buttonPcbTranslation = [4,0,2.7];
 //rotate([0,45,-$t*360])  //for animation
   translate([-screenCube[0]/2,-screenCube[1]/2,0])  {
-      *frontBezel(instance="main");
-      back();
+      #frontBezel(instance="main");
+      #back();
 
-      mainPcbPos = [lcdCube[0]-mainPcbSize[0]-20,6,1.9];
+      mainPcbPos = [lcdCube[0]-mainPcbSize[0]-20,-3,1.9];
       #lcd(extentionsOnly=true,nutHeight=nutHeight);
-      #translate([0,0,lcdCube[2]]){
-        translate([-bezelWidth+overlap[3]+5.5,91,3.2])rotate([0,-buttonRotation,0])rotate([180,0,0])buttonPcb();
+      translate([0,0,lcdCube[2]]){
+        translate([-bezelWidth+overlap[3]+5.5,91,3.2]+buttonPcbTranslation)rotate([0,-buttonRotation,0])rotate([180,0,0])buttonPcb();
         translate([mainPcbPos[0]+mainPcbSize[0]+0.5,3.5,2]){
           translate([3,0,0])microUsbPcb();
-          translate([0,18+10,-2])touchDriverPcb();
+          translate([0,18+10,-2-0.001])touchDriverPcb();
           translate([20.7,18+9.4,-2+7.9])rotate([0,180,90])3p5mmPcb();
         }
         translate(mainPcbPos)mainPcb(holes="screws");
       }
   }
 
-module back(screwSecuringDiameter=16){
-  for(x = [-1,1], y = [-1,1]){
-    translate([lcdCube[0]/2+x*patternX/2,lcdCube[1]/2+y*patternY/2, lcdCube[2]+nutHeight-clearanceDepth]){
-      cylinder(d=screwSecuringDiameter,clearanceDepth+nutThickness+nutMountDepth,$fn=6);
-  }  }
-  translate([0,0,lcdCube[2]])
-  difference(){
-    hull(){
-      frontBezelbackShape();
-      translate([(screenCube[0]*(1-scaleFactor))/2,(screenCube[1]*(1-scaleFactor))/2,backPlateHeihgt])scale([scaleFactor,scaleFactor,1])frontBezelbackShape();
-    }
-    hull(){
-      translate([0,0,-0.001])cube(screenCube);
-      translate([(screenCube[0]*(1-scaleFactor))/2,(screenCube[1]*(1-scaleFactor))/2,backPlateHeihgt+2])cube(screenCube*scaleFactor);
+module back(screwSecuringDiameter=16,instance="notMain"){
+  if(instance != "main"){
+    for(x = [-1,1], y = [-1,1]){
+      translate([lcdCube[0]/2+x*patternX/2,lcdCube[1]/2+y*patternY/2, lcdCube[2]+nutHeight-clearanceDepth]){
+        cylinder(d=screwSecuringDiameter,clearanceDepth+nutThickness+nutMountDepth,$fn=6);
+    }  }
+    bevelWidth = 5;
+    translate([0,0,lcdCube[2]])
+    difference(){
+      hull(){
+        frontBezelbackShape(h=1stBackPlateHeight);
+        translate([0,0,2ndBackPlateHeight])
+        //scale([2ndBackPlateScale,2ndBackPlateScale,1])
+        frontBezelbackShape(bezel=bezelWidth*2ndBackPlateScale,cornerRad=cornerRadius*2ndBackPlateScale);
+        }
+      cutoutRadius=8;
+      translate([-bezelWidth+1,screenCube[1]/2,0])hull(){
+        translate([0,0,0])rotate([0,20,180])hexoid(r=cutoutRadius,l=60,h=0.001);
+        translate([0,0,2ndBackPlateHeight+0.1])rotate([0,20,180])hexoid(r=cutoutRadius*1.5,l=60*1.1,h=0.001);
+      }
+      hull(){
+        translate([0,0,-0.001])cube(screenCube);
+        translate([(screenCube[0]*(1-2ndBackPlateScale))/2,(screenCube[1]*(1-2ndBackPlateScale))/2,2ndBackPlateHeight+3])cube(screenCube*2ndBackPlateScale);
+      }
     }
   }
-
 }
 //frontBezelbackShape();
 
-module frontBezelbackShape(){
-  frontBezel(lcdFrontMountDepth=0,lcdCube=[lcdCube[0],lcdCube[1],1]);
+module frontBezelbackShape(h=0.01,bezel=bezelWidth,cornerRad=cornerRadius){
+  frontBezel(lcdFrontMountDepth=0,lcdCube=[lcdCube[0],lcdCube[1],h],bezelWidth=bezel,cornerRadius=cornerRad);
+}
+//translate([0,0,50])rotate([0,0,180])hexoid(5,20,5);
+module hexoid(r,l,h){
+  hull(){
+    translate([0,-l/2,0])rotate([0,0,30])cylinder(r=r,h,$fn=6);
+    translate([0,l/2,0])rotate([0,0,30])cylinder(r=r,h,$fn=6);
+    translate([0,-l/2-r,0])cube([l,l+2*r,h]);
+  }
 }
