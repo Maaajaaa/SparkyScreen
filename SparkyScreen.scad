@@ -55,7 +55,7 @@ module lcd(patternX=50, patternY=20, thread = "M4", nutHeight=16, clearanceDepth
 //without them
 mainPcbSize=[128.7,85.4,1.4];
 
-module mainPcb(holes = "in"){
+module mainPcb(holes = "in",showCables=showCables){
   //board and MAIN components (reference: winborad IC (U300))
   difference(){
     color(pcbColor)cube(mainPcbSize);
@@ -67,13 +67,13 @@ module mainPcb(holes = "in"){
   color("LightGrey")translate([-0.001,39,0.001])cube([15,15,4.2]);
   //HDMI port and cable
   color("Grey")translate([25.5,-3,-0.2])cube([16.4,12.6,7.6]);
-  if(showCables)color("Grey")translate([25.5-3.2,-43,-0.2-3.2])cube([22,40,14]);
+  if(showCables)color("SkyBlue")translate([25.5-3.2,-42.99,-0.2-3.2])cube([22,40,14]);
   //DVI port and cable
   color("LightGrey")translate([46.5,-6,-1.5])cube([38.4,17.5,12.4]);
-  if(showCables)color("LightGrey")translate([46.7,-46,-1.5-3.6/2])cube([38,40,16]);
+  if(showCables)color("SkyBlue")translate([46.7,-45.99,-1.5-3.6/2])cube([38,40,16]);
   //VGA port and cable
-  color("LightBlue")translate([89,-6,-1.5])cube([32,15.5,15.5]);
-  if(showCables)color("LightBlue")translate([87.75,-46,-1.5])cube([34.5,40,15.5]);
+  color("Blue")translate([89,-6,-1.5])cube([32,15.5,15.5]);
+  if(showCables)color("SkyBlue")translate([87.75,-45.99,-1.5])cube([34.5,40,15.5]);
 
   color("LightGrey")translate([35.6,74.5,mainPcbSize[2]])cube([27,11,0.8]);
   //big components like coils and caps
@@ -205,21 +205,29 @@ module frontBezel(lcdFrontMountDepth=lcdFrontMountDepth,bezelWidth=bezelWidth,in
 
 buttonRotation = 0;
 buttonPcbTranslation = [4,0,2.7];
-//rotate([0,45,-$t*360])  //for animation
+//rotate([0,-45,-$t*360])  //only for animation
   translate([-screenCube[0]/2,-screenCube[1]/2,0])  {
-      #frontBezel(instance="main");
-      #back();
-
       mainPcbPos = [lcdCube[0]-mainPcbSize[0]-20,-3,1.9];
-      #lcd(extentionsOnly=true,nutHeight=nutHeight);
+      difference(){
+        union(){
+          back();
+          frontBezel(instance="main");
+        }
+        translate(mainPcbPos+[0,0,lcdCube[2]])mainPcb(holes="screws");
+        lcd(extentionsOnly=true,nutHeight=nutHeight);
+      }
+
+      //#back();
+
       translate([0,0,lcdCube[2]]){
+        translate(mainPcbPos)mainPcb(holes="screws",showCables=false);
         translate([-bezelWidth+overlap[3]+5.5,91,3.2]+buttonPcbTranslation)rotate([0,-buttonRotation,0])rotate([180,0,0])buttonPcb();
         translate([mainPcbPos[0]+mainPcbSize[0]+0.5,3.5,2]){
           translate([3,0,0])microUsbPcb();
           translate([0,18+10,-2-0.001])touchDriverPcb();
           translate([20.7,18+9.4,-2+7.9])rotate([0,180,90])3p5mmPcb();
         }
-        translate(mainPcbPos)mainPcb(holes="screws");
+
       }
   }
 
@@ -239,7 +247,7 @@ module back(screwSecuringDiameter=16,instance="notMain"){
         frontBezelbackShape(bezel=bezelWidth*2ndBackPlateScale,cornerRad=cornerRadius*2ndBackPlateScale);
         }
       cutoutRadius=8;
-      translate([-bezelWidth+1,screenCube[1]/2,0])hull(){
+      translate([-bezelWidth+0.75,screenCube[1]/2,0])hull(){
         translate([0,0,0])rotate([0,20,180])hexoid(r=cutoutRadius,l=60,h=0.001);
         translate([0,0,2ndBackPlateHeight+0.1])rotate([0,20,180])hexoid(r=cutoutRadius*1.5,l=60*1.1,h=0.001);
       }
