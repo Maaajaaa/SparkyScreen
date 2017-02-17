@@ -15,6 +15,13 @@ cornerRadius = 5; // [0:0.1:30]
 //radius for smoothing the outer corners
 cornerSmoothingRadius = 2; // [0:0.05:5]
 
+//inner cornerRadius of the frontBezel
+innerCornerRadius = 2; // [0:0.1:30]
+
+//radius for smoothing the inner corners
+innerCornerSmoothingRadius = 0.65; // [0:0.05:5]
+
+
 /* [Backside] */
 //height of the first backPlate
 1stBackPlateHeight = 5.4;// [0.1:0.1:10]
@@ -153,7 +160,7 @@ wallThickness = 2;
 lcdFrontMountDepth = 1.5;
 //[back,bottom,right,left]
 overlap = [1.5,8,3.5,2];
-screenCube = [lcdCube[0]-overlap[2]-overlap[3],lcdCube[1]-overlap[0]-overlap[1],lcdCube[2]+1];
+screenCube = [lcdCube[0]-overlap[2]-overlap[3],lcdCube[1]-overlap[0]-overlap[1],lcdFrontMountDepth];
 
 module frontBezel(lcdFrontMountDepth=lcdFrontMountDepth,bezelWidth=bezelWidth,instance="notMain",lcdCube=lcdCube,cornerRadius=cornerRadius){
   //overlap difference of left and right
@@ -194,6 +201,7 @@ module frontBezel(lcdFrontMountDepth=lcdFrontMountDepth,bezelWidth=bezelWidth,in
   }
   if(instance == "main"){
     difference() {
+      lcbBevelWidth = 2;
       hull(){
         bevelHeight = lcdFrontMountDepth;
         //originalHeight but smaller bezelWidth
@@ -202,17 +210,31 @@ module frontBezel(lcdFrontMountDepth=lcdFrontMountDepth,bezelWidth=bezelWidth,in
         translate([0,0,0])frontBezel(lcdFrontMountDepth=0);
       }
       translate([overlap[3],overlap[0],0]){
-        color("DarkSlateGrey")translate([0,0,-lcdFrontMountDepth-1])cube(screenCube);
-        #color("Gray")translate([-overlap[3],-overlap[0],0])scale([1, 1, 1.1])lcd();
+        hull(){
+          color("DarkSlateGrey")translate([0,0,-lcdFrontMountDepth+0.001])cube(screenCube);
+          color("DarkSlateGrey")translate([-lcbBevelWidth,-lcbBevelWidth,-lcdFrontMountDepth-screenCube[2]])
+            resize([screenCube[0]+2*lcbBevelWidth,screenCube[1]+2*lcbBevelWidth,0])screenSpace();
+        }
+        color("Gray")translate([-overlap[3],-overlap[0],-0.001])scale([1, 1, 1.1])lcd();
       }
     }
   }
 }
 
+module screenSpace(){
+  correction = innerCornerRadius+innerCornerSmoothingRadius;
+  translate([correction,correction,0])minkowski(){
+    cube(screenCube-[correction,correction,0]);
+    cylinder(r=innerCornerRadius, 0.00001,$fn=4);
+    cylinder(r=innerCornerSmoothingRadius,0.00001,$fn=30);
+  }
+}
+
+frontBezel(instance="main");
 buttonRotation = 0;
 buttonPcbTranslation = [4,0,2.7];
-//rotate([0,-45,-$t*360])  //only for animation
-  translate([-screenCube[0]/2,-screenCube[1]/2,0])  {
+*rotate([0,-45,-$t*360])  //only for animation
+  translate([-screenCube[0]/2,-screenCube[1],0])  {
       mainPcbPos = [lcdCube[0]-mainPcbSize[0]-20,-3,1.9];
       difference()
       {
