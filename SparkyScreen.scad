@@ -10,16 +10,19 @@ $fn = 40;
 bezelWidth = 12;  // [5:0.1:30]
 
 //cornerRadius of the frontBezel
-cornerRadius = 5; // [0:0.1:30]
+cornerRadius = 3.8; // [0:0.1:30]
 
 //radius for smoothing the outer corners
-cornerSmoothingRadius = 2; // [0:0.05:5]
+cornerSmoothingRadius = 1.4; // [0:0.05:5]
 
 //inner cornerRadius of the frontBezel
 innerCornerRadius = 2; // [0:0.1:30]
 
 //radius for smoothing the inner corners
 innerCornerSmoothingRadius = 0.65; // [0:0.05:5]
+
+//position of the screws that should connect the front and backPlate
+cornerOffset = 5.7; // [0:0.05:20]
 
 
 /* [Backside] */
@@ -161,6 +164,7 @@ lcdFrontMountDepth = 1.5;
 //[back,bottom,right,left]
 overlap = [1.5,8,3.5,2];
 screenCube = [lcdCube[0]-overlap[2]-overlap[3],lcdCube[1]-overlap[0]-overlap[1],lcdFrontMountDepth];
+totalSize = screenCube + [bezelWidth*2,bezelWidth*2,0];
 
 module frontBezel(lcdFrontMountDepth=lcdFrontMountDepth,bezelWidth=bezelWidth,instance="notMain",lcdCube=lcdCube,cornerRadius=cornerRadius){
   //overlap difference of left and right
@@ -202,14 +206,15 @@ module frontBezel(lcdFrontMountDepth=lcdFrontMountDepth,bezelWidth=bezelWidth,in
   if(instance == "main"){
     difference() {
       lcbBevelWidth = 2;
+      bevelHeight = lcdFrontMountDepth;
       hull(){
-        bevelHeight = lcdFrontMountDepth;
         //originalHeight but smaller bezelWidth
         translate([0,0,0])frontBezel(bezelWidth=bezelWidth-bevelHeight*2,cornerRadius=cornerRadius*0.75);
         //lower with right bezel
         translate([0,0,0])frontBezel(lcdFrontMountDepth=0);
       }
       translate([overlap[3],overlap[0],0]){
+        //beveled hole for the display
         hull(){
           color("DarkSlateGrey")translate([0,0,-lcdFrontMountDepth+0.001])cube(screenCube);
           color("DarkSlateGrey")translate([-lcbBevelWidth,-lcbBevelWidth,-lcdFrontMountDepth-screenCube[2]])
@@ -217,7 +222,19 @@ module frontBezel(lcdFrontMountDepth=lcdFrontMountDepth,bezelWidth=bezelWidth,in
         }
         color("Gray")translate([-overlap[3],-overlap[0],-0.001])scale([1, 1, 1.1])lcd();
       }
+      translate([overlap[3]-bezelWidth,overlap[0]-bezelWidth,-lcdFrontMountDepth])
+        for(x=[0,1], y=[0,1]){
+          //cornerOffset = bezelWidth/2+bevelHeight+lcbBevelWidth/2-0.5;
+          baseTranslation = [cornerOffset,cornerOffset,2.9];
+          translate(baseTranslation+[x*(totalSize[0]-2*cornerOffset),y*(totalSize[1]-2*cornerOffset),0])rotate([0,180,0])screw("M3x8",makeKeySlot=false);
+        }
     }
+    translate([overlap[3]-bezelWidth,overlap[0]-bezelWidth,-lcdFrontMountDepth])
+      for(x=[0,1], y=[0,1]){
+        //cornerOffset = bezelWidth/2+bevelHeight+lcbBevelWidth/2-0.5;
+        baseTranslation = [cornerOffset,cornerOffset,2.9];
+        stainless(no="1.4301")translate(baseTranslation+[x*(totalSize[0]-2*cornerOffset),y*(totalSize[1]-2*cornerOffset),0])rotate([0,180,0])screw("M3x8");
+      }
   }
 }
 
