@@ -1,7 +1,7 @@
 use<nutsnbolts/cyl_head_bolt.scad>
 use<nutsnbolts/materials.scad>
-use<nutsnbolts/data-access.scad> // database lookup functions
-use<nutsnbolts/data-metric_cyl_head_bolts.scad>
+include<nutsnbolts/data-access.scad> // database lookup functions
+include<nutsnbolts/data-metric_cyl_head_bolts.scad>
 
 $fn = 40;
 
@@ -115,7 +115,7 @@ module touchDriverPcb(holes = "in"){
   }
 }
 
-module microUsbPcb(){
+module microUsbPcb(showCables=showCables){
   //PCB
   color("Darkgreen", 1)difference(){
     translate([0,0.6,0])cube([13.4, 15.1, 3.3]);
@@ -130,10 +130,13 @@ module microUsbPcb(){
       cube([7.5,2.1,2.6]);
       //bened end
       translate([-0.25,0,-0.3])cube([8, .6, 3.2]);
-  } }
+   if(showCables)translate([-0.25-3,-30,-0.3-3.4])cube([14,30,10]);
+
+   }
+   }
 }
 
-module 3p5mmPcb(){
+module 3p5mmPcb(showCables=showCables){
   difference(){
     //pcb
     cube([10.4,20.7,2.7]);
@@ -143,6 +146,7 @@ module 3p5mmPcb(){
   //connector
   translate([2,-0.25,2.7])cube([6.4,11.6,5.1]);
   translate([5.2,-2.7,2.5+2.7])rotate([0,90,90])cylinder(d=5,2.7);
+  if(showCables)translate([5.2,-2.5-20,2.5+2.7])rotate([0,90,90])cylinder(d=11,20);
 }
 
 wallThickness = 2;
@@ -214,29 +218,31 @@ buttonPcbTranslation = [4,0,2.7];
       {
         union(){
           frontBezel(instance="main");
-          back();
+          back(instance="main");
         }
         translate(mainPcbPos+[0,0,lcdCube[2]])mainPcb(holes="screws");
         lcd(extentionsOnly=true,nutHeight=nutHeight);
+        translate([mainPcbPos[0]+mainPcbSize[0]+0.5,3.5,2]+[3,-12,lcdCube[2]])microUsbPcb(showCables=true);
+        translate([mainPcbPos[0]+mainPcbSize[0]+0.5,3.5,2]+[20.7,5,-2+lcdCube[2]])rotate([0,0,90])3p5mmPcb(showCables=true);
       }
 
       //#back();
-
+        lcd(extentionsOnly=true,nutHeight=nutHeight);
       translate([0,0,lcdCube[2]]){
         translate(mainPcbPos)mainPcb(holes="screws",showCables=false);
-        translate([-bezelWidth+overlap[3]+5.5,91,3.2]+buttonPcbTranslation)rotate([0,-buttonRotation,0])rotate([180,0,0])buttonPcb();
+        translate([-bezelWidth+overlap[3]+5.8,91,3.2]+buttonPcbTranslation)rotate([0,-buttonRotation,0])rotate([180,0,0])buttonPcb();
         translate([mainPcbPos[0]+mainPcbSize[0]+0.5,3.5,2]){
-          translate([3,0,0])microUsbPcb();
+          translate([3,-12,0])microUsbPcb(showCables=false);
           translate([0,18+10,-2-0.001])touchDriverPcb();
-          translate([20.7,18+9.4,-2+7.9])rotate([0,180,90])3p5mmPcb();
+          translate([20.7,5,-2])rotate([0,0,90])3p5mmPcb(showCables=false);
         }
 
       }
   }
 
-module back(screwSecuringDiameter=16,instance="notMain"){
+module back(screwSecuringDiameter=16,instance="notMain", shellThickness = 2, mounts=true){
   if(instance != "main"){
-    for(x = [-1,1], y = [-1,1]){
+    if(mounts)for(x = [-1,1], y = [-1,1]){
       translate([lcdCube[0]/2+x*patternX/2,lcdCube[1]/2+y*patternY/2, lcdCube[2]+nutHeight-clearanceDepth]){
         cylinder(d=screwSecuringDiameter,clearanceDepth+nutThickness+nutMountDepth,$fn=6);
     }  }
@@ -259,6 +265,15 @@ module back(screwSecuringDiameter=16,instance="notMain"){
         #translate([0,0,2ndBackPlateHeight+3])
           cube(screenCube-[2ndBackPlateScale*2,2ndBackPlateScale*2,0]);
       }*/
+    }
+  }else{
+    translate([screenCube[0]/2+overlap[3],screenCube[1]/2+overlap[0],0])difference()
+    {
+      backSize = [(screenCube[0]+bezelWidth*2),(screenCube[1]+bezelWidth*2),0];
+      translate([-backSize[0]/2,-backSize[1]/2,0])translate([bezelWidth-overlap[3],bezelWidth-overlap[0]])back();
+      translate([0,0,-0])
+      resize([backSize[0]-2*shellThickness,0,0],auto=true)
+      translate([-backSize[0]/2,-backSize[1]/2,0])translate([bezelWidth-overlap[3],bezelWidth-overlap[0]])back(mounts=false);
     }
   }
 }
