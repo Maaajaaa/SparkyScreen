@@ -75,8 +75,8 @@ module mainPcb(holes = "in",showCables=showCables){
         translate([4.6+x*(mainPcbSize[0]-9.2), 5.3+y*(mainPcbSize[1]-10),-1])cylinder(5,d=3.2,$fn=20);
   }
   //connectors
-  color("LightGrey")translate([-0.001,12,0.001])cube([12.3,22,7]);
-  color("LightGrey")translate([-0.001,39,0.001])cube([15,15,4.2]);
+  color("LightGrey")translate([-0.001,12,-0.001])cube([12.3,22,7]);
+  color("LightGrey")translate([-0.001,39,-0.001])cube([15,15,4.2]);
   //HDMI port and cable
   color("Grey")translate([25.5,-3,-0.2])cube([16.4,12.6,7.6]);
   if(showCables)color("SkyBlue")translate([25.5-3.2,-42.99,-0.2-3.2])cube([22,40,14]);
@@ -89,7 +89,7 @@ module mainPcb(holes = "in",showCables=showCables){
 
   color("LightGrey")translate([35.6,74.5,mainPcbSize[2]])cube([27,11,0.8]);
   //big components like coils and caps
-  color("DarkSlateGrey")translate([64,21,3.3])cube([43,56,4.2]);
+  color("DarkSlateGrey")translate([64,21,mainPcbSize[2]])cube([43,56,4.2]);
   if(holes == "screws")stainless(no="1.4301")for(x = [0,1], y = [0,1]){
     translate([4.6+x*(mainPcbSize[0]-9.2), 5.3+y*(mainPcbSize[1]-10), 1.4+4])nut("M3");
     translate([4.6+x*(mainPcbSize[0]-9.2), 5.3+y*(mainPcbSize[1]-10), 0.1])rotate([0,180,0])screw("M3x6");
@@ -120,8 +120,8 @@ module touchDriverPcb(holes = "in"){
     //pcb including space for highest component (quarz)
     color("Green")cube([20,68,5.2]);
     //mounting holes
-    translate([3,3,-1])cylinder(d=3,7);
-    translate([17,65,-1])cylinder(d=3,7);
+    translate([17,3,-1])cylinder(d=3,7);
+    translate([3,65,-1])cylinder(d=3,7);
   }
 }
 
@@ -134,12 +134,12 @@ module microUsbPcb(showCables=showCables){
   }
   translate([1.6,0,3.3]){
     //space with solder
-    translate([0,2.1,0]) cube([10.6,3.5,2.6]);
-    translate([1.55,0,0]){
+    translate([0,2.1-00.1,0]) cube([10.6,3.5,2.6]);
+    translate([1.55,-0.001,0]){
       //solderfree space
-      cube([7.5,2.1,2.6]);
+      cube([7.5,2.1+0.002,2.6]);
       //bened end
-      translate([-0.25,0,-0.3])cube([8, .6, 3.2]);
+      translate([-0.25,-0.001,-0.3])cube([8, .6, 3.2]);
    if(showCables)translate([-0.25-3,-30,-0.3-3.4])cube([14,30,10]);
 
    }
@@ -156,7 +156,17 @@ module 3p5mmPcb(showCables=showCables){
   //connector
   translate([2,-0.25,2.7])cube([6.4,11.6,5.1]);
   translate([5.2,-2.7,2.5+2.7])rotate([0,90,90])cylinder(d=5,2.7);
-  if(showCables)translate([5.2,-2.5-20,2.5+2.7])rotate([0,90,90])cylinder(d=11,20);
+  if(showCables)translate([5.2,-2.5-20,2.5+2.7])rotate([0,30,0])rotate([0,90,90])cylinder(d=14,20,$fn=6);
+}
+
+module dCPowerPlug(showCables=showCables,topCut=false){
+  cube([11.5,3.8,9.3]);
+  translate([0,3.799,0])cube([6.5,12,9.3]);
+  translate([11.5-9.3/2,3.799+12,9.3/2])rotate([90,0,0])cylinder(d=9.3,12);
+  if(showCables)translate([11.5-9.3/2,0,9.3/2])rotate([90,0,0])cylinder(d=15,30);
+  if(topCut)translate([11.5-9.3/2,3.799,9.3/2])cube([9.3/2,12,9.3/2]);
+  //space for soldered cables
+  translate([-3,6,2.5])cube([3.1,10.5,6.6]);
 }
 
 wallThickness = 2;
@@ -207,13 +217,13 @@ module frontBezel(lcdFrontMountDepth=lcdFrontMountDepth,bezelWidth=bezelWidth,in
     difference() {
       lcbBevelWidth = 2;
       bevelHeight = lcdFrontMountDepth;
-      hull(){
+      *hull(){
         //originalHeight but smaller bezelWidth
         translate([0,0,0])frontBezel(bezelWidth=bezelWidth-bevelHeight*2,cornerRadius=cornerRadius*0.75);
         //lower with right bezel
         translate([0,0,0])frontBezel(lcdFrontMountDepth=0);
       }
-      translate([overlap[3],overlap[0],0]){
+      *translate([overlap[3],overlap[0],0]){
         //beveled hole for the display
         hull(){
           color("DarkSlateGrey")translate([0,0,-lcdFrontMountDepth+0.001])cube(screenCube);
@@ -222,7 +232,7 @@ module frontBezel(lcdFrontMountDepth=lcdFrontMountDepth,bezelWidth=bezelWidth,in
         }
         color("Gray")translate([-overlap[3],-overlap[0],-0.001])scale([1, 1, 1.1])lcd();
       }
-      translate([overlap[3]-bezelWidth,overlap[0]-bezelWidth,-lcdFrontMountDepth])
+      *translate([overlap[3]-bezelWidth,overlap[0]-bezelWidth,-lcdFrontMountDepth])
         for(x=[0,1], y=[0,1]){
           //cornerOffset = bezelWidth/2+bevelHeight+lcbBevelWidth/2-0.5;
           baseTranslation = [cornerOffset,cornerOffset,2.9];
@@ -247,39 +257,50 @@ module screenSpace(){
   }
 }
 
-frontBezel(instance="main");
 buttonRotation = 0;
 buttonPcbTranslation = [4,0,2.7];
-*rotate([0,-45,-$t*360])  //only for animation
-  translate([-screenCube[0]/2,-screenCube[1],0])  {
+//back();
+//rotate([0,-45,-$t*360])  //only for animation
+  //translate([-screenCube[0]/2,-screenCube[1],0])
+  translate(){
       mainPcbPos = [lcdCube[0]-mainPcbSize[0]-20,-3,1.9];
-      difference()
+      /*difference()
       {
         union(){
-          frontBezel(instance="main");
+          *frontBezel(instance="main");
           back(instance="main");
         }
-        translate(mainPcbPos+[0,0,lcdCube[2]])mainPcb(holes="screws");
-        lcd(extentionsOnly=true,nutHeight=nutHeight);
-        translate([mainPcbPos[0]+mainPcbSize[0]+0.5,3.5,2]+[3,-12,lcdCube[2]])microUsbPcb(showCables=true);
-        translate([mainPcbPos[0]+mainPcbSize[0]+0.5,3.5,2]+[20.7,5,-2+lcdCube[2]])rotate([0,0,90])3p5mmPcb(showCables=true);
-      }
 
-      //#back();
+      }*/
+      frontBezel(instance="main");
+      difference(){
+        back(instance="main");
         lcd(extentionsOnly=true,nutHeight=nutHeight);
-      translate([0,0,lcdCube[2]]){
+        translate([0,0,lcdCube[2]]){
+          translate(mainPcbPos)mainPcb(holes="screws",showCables=true);
+          translate([-bezelWidth+overlap[3]+5.8,91,3.2]+buttonPcbTranslation)rotate([0,-buttonRotation,0])rotate([180,0,0])buttonPcb();
+          translate([12,-9,9.298])rotate([0,180,0])dCPowerPlug(showCables=true,topCut=true);
+          translate([mainPcbPos[0]+mainPcbSize[0]+0.5,3.5,2]){
+            translate([3,-12,0])microUsbPcb(showCables=true);
+            translate([0,18+10,-2-0.001])touchDriverPcb();
+            translate([20.7,5,-2])rotate([0,0,90])3p5mmPcb(showCables=true);
+          }
+        }
+      }
+      #lcd(extentionsOnly=true,nutHeight=nutHeight);
+      #translate([0,0,lcdCube[2]]){
         translate(mainPcbPos)mainPcb(holes="screws",showCables=false);
+        translate([12,-9,9.3])rotate([0,180,0])dCPowerPlug(showCables=false);
         translate([-bezelWidth+overlap[3]+5.8,91,3.2]+buttonPcbTranslation)rotate([0,-buttonRotation,0])rotate([180,0,0])buttonPcb();
         translate([mainPcbPos[0]+mainPcbSize[0]+0.5,3.5,2]){
           translate([3,-12,0])microUsbPcb(showCables=false);
           translate([0,18+10,-2-0.001])touchDriverPcb();
           translate([20.7,5,-2])rotate([0,0,90])3p5mmPcb(showCables=false);
         }
-
       }
-  }
+}
 
-module back(screwSecuringDiameter=16,instance="notMain", shellThickness = 2, mounts=true){
+module back(screwSecuringDiameter=16,instance="notMain", shellThickness = [8,8,2], mounts=true){
   if(instance != "main"){
     if(mounts)for(x = [-1,1], y = [-1,1]){
       translate([lcdCube[0]/2+x*patternX/2,lcdCube[1]/2+y*patternY/2, lcdCube[2]+nutHeight-clearanceDepth]){
@@ -308,10 +329,10 @@ module back(screwSecuringDiameter=16,instance="notMain", shellThickness = 2, mou
   }else{
     translate([screenCube[0]/2+overlap[3],screenCube[1]/2+overlap[0],0])difference()
     {
-      backSize = [(screenCube[0]+bezelWidth*2),(screenCube[1]+bezelWidth*2),0];
+      backSize = [(screenCube[0]+bezelWidth*2),(screenCube[1]+bezelWidth*2),2ndBackPlateHeight];
       translate([-backSize[0]/2,-backSize[1]/2,0])translate([bezelWidth-overlap[3],bezelWidth-overlap[0]])back();
       translate([0,0,-0])
-      resize([backSize[0]-2*shellThickness,0,0],auto=true)
+      resize(backSize-[2*shellThickness[0],2*shellThickness[1],shellThickness[2]])
       translate([-backSize[0]/2,-backSize[1]/2,0])translate([bezelWidth-overlap[3],bezelWidth-overlap[0]])back(mounts=false);
     }
   }
